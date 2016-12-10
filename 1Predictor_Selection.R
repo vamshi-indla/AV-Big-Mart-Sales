@@ -95,25 +95,12 @@ ordered.test <- as.data.frame(ordered.test)
 
 target <- target*maxSales
 
+# save those dataframes to disk
+write.csv(ordered.preds, file="ordered_predictors.csv", row.names=FALSE, quote = FALSE)
+write.csv(ordered.test, file="ordered_test.csv", row.names=FALSE, quote = FALSE)
+write.csv(target, file="sales.csv", row.names=FALSE, quote = FALSE)
 
-### 4. Model Building
 
-
-
-### 5. Submission
-################################
-#
-# preparing the final submissions
-#
-################################
-
-final12 <- data.frame(test$Item_Identifier, test$Outlet_Identifier, prediction12)
-
-names(final12) <- c("Item_Identifier",
-                    "Outlet_Identifier",
-                    "Item_Outlet_Sales")
-
-write.csv(final12, file="final12.csv", row.names=FALSE, quote = FALSE)
 
 # free up some memory
 gc(verbose = TRUE)
