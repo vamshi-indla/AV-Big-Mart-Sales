@@ -143,7 +143,7 @@ ordered.test <- as.data.frame(ordered.test)
 
 #remove the scaling to [0,1] in target
 
-trainm$Item_Outlet_Sales <- trainm$Item_Outlet_Sales*maxSales
+trainm$target <- trainm$target*maxSales
 
 
 ###################################
@@ -180,6 +180,7 @@ boruta.predictors[boruta.predictors=='`Outlet_Location_TypeTier 3`'] <-  "Outlet
 boruta.predictors[boruta.predictors=='`Outlet_TypeSupermarket Type1`'] <-  "Outlet_TypeSupermarket Type1"
 boruta.predictors[boruta.predictors=='`Outlet_TypeSupermarket Type2`'] <-  "Outlet_TypeSupermarket Type2"
 boruta.predictors[boruta.predictors=='`Outlet_TypeSupermarket Type3`'] <-  "Outlet_TypeSupermarket Type3"
+boruta.predictors[boruta.predictors=='`Item_Type_CombinedNon-Consumable`'] <-  "Item_Type_CombinedNon-Consumable"
 
 ordered.preds <- trainm[boruta.predictors]
 ordered.test <- testm[boruta.predictors]

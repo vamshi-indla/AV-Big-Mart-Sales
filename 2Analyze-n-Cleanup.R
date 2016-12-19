@@ -1,23 +1,23 @@
 ---
-title: "Approach and Solution to break in Top 20 of Big Mart Sales prediction in R"
+  title: "Approach and Solution to break in Top 20 of Big Mart Sales prediction in R"
 output: github_document
 Author: Vamshi Indla
 --
-
-```{r setup, include=FALSE}
+  
+  ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## References
 
 Below analysis and model ideas are heavily borrowed from:
-https://www.analyticsvidhya.com/blog/2016/02/bigmart-sales-solution-top-20/
-
-Onehot Encoding
+  https://www.analyticsvidhya.com/blog/2016/02/bigmart-sales-solution-top-20/
+  
+  Onehot Encoding
 https://github.com/dmlc/xgboost/blob/master/R-package/demo/create_sparse_matrix.R
 
 R-code with h2o Models:
-https://github.com/MichaelPluemacher/Big-Mart-Sales/blob/master/AnalyzeAndClean.R
+  https://github.com/MichaelPluemacher/Big-Mart-Sales/blob/master/AnalyzeAndClean.R
 
 
 ## Introduction
@@ -25,8 +25,8 @@ https://github.com/MichaelPluemacher/Big-Mart-Sales/blob/master/AnalyzeAndClean.
 BigMart Sales Prediction practice problem was launched on Analytics Vidhya in 2016. I am going to take you through the entire journey of getting started with this data set, using R.
 
 We will explore the problem in following stages:
-
-1. Hypothesis Generation – understanding the problem better by brainstorming possible factors that can impact the outcome
+  
+  1. Hypothesis Generation – understanding the problem better by brainstorming possible factors that can impact the outcome
 2. Data Exploration – looking at categorical and continuous feature summaries and making inferences about the data.
 3. Data Cleaning – imputing missing values in the data and checking for outliers
 4. Feature Engineering – modifying existing variables and creating new ones for analysis
@@ -39,8 +39,8 @@ This is a very pivotal step in the process of analyzing data. This involves unde
 ## The Problem Statement
 
 Understanding the problem statement is the first and foremost step. You can view this in the competition page but I’ll iterate the same here:
-
-So the idea is to find out the properties of a product, and store which impacts the sales of a product. Let’s think about some of the analysis that can be done and come up with certain hypothesis.
+  
+  So the idea is to find out the properties of a product, and store which impacts the sales of a product. Let’s think about some of the analysis that can be done and come up with certain hypothesis.
 
 ## The Hypotheses
 
@@ -75,10 +75,10 @@ Lets move on to the data exploration where we will have a look at the data in de
 We’ll be performing some basic data exploration here and come up with some inferences about the data. We’ll try to figure out some irregularities and address them in the next section. 
 
 The first step is to look at the data and try to identify the information which we hypothesized vs the available data. A comparison between the data dictionary on the competition page and out hypotheses is shown below:
-
-### Insert Image
-
-You will invariable find features which you hypothesized, but data doesn’t carry and vice versa. You should look for open source data to fill the gaps if possible. Let’s start by loading the required libraries and data. You can download the data from the competition page.
+  
+  ### Insert Image
+  
+  You will invariable find features which you hypothesized, but data doesn’t carry and vice versa. You should look for open source data to fill the gaps if possible. Let’s start by loading the required libraries and data. You can download the data from the competition page.
 
 ```{r,echo=TRUE}
 #Read files:
@@ -91,7 +91,7 @@ test = read.csv("test.csv",stringsAsFactors = TRUE)
 Its generally a good idea to combine both train and test data sets into one, perform feature engineering and then divide them later again. This saves the trouble of performing the same steps twice on test and train. Lets combine them into a dataframe ‘data’ with a ‘source’ column specifying where each observation belongs.
 
 ```{r,echo=TRUE}
- 
+
 train$source <-  'train'
 test$source <- 'test' 
 test$Item_Outlet_Sales <- NA
@@ -111,15 +111,15 @@ unlist(lapply (data, function (x) ifelse(class(x)=="numeric",sum(is.na(x)),sum(x
 Note that the Item_Outlet_Sales is the target variable and missing values are ones in the test set. So we need not worry about it. But we’ll impute the missing values in Item_Weight and Outlet_Size in the data cleaning section.
 
 Lets look at some basic statistics for numerical variables.
- 
+
 ```{r,echo=TRUE}
 summary(data)
 }
 ```
 
 Some observations:
-
-1. Item_Visibility has a min value of zero. This makes no practical sense because when a product is being sold in a store, the visibility cannot be 0.
+  
+  1. Item_Visibility has a min value of zero. This makes no practical sense because when a product is being sold in a store, the visibility cannot be 0.
 2. Outlet_Establishment_Years vary from 1985 to 2009. The values might not be apt in this form. Rather, if we can convert them to how old the particular store is, it should have a better impact on sales.
 3. The lower ‘count’ of Item_Weight and Item_Outlet_Sales confirms the findings from the missing value check.
 
@@ -138,18 +138,18 @@ categorical_columns <- names(data)[which(sapply(data, is.factor))]
 
 #Exclude ID cols and source:
 categorical_columns <- categorical_columns[-which(categorical_columns %in% c('Item_Identifier','Outlet_Identifier'))]
- 
+
 ##Print frequency of categories
 library(plyr)
 for(col in which(names(data) %in% categorical_columns)){
-    cat('\nFrequency of Categories for varible')
-    print(count(data[col]))
+  cat('\nFrequency of Categories for varible')
+  print(count(data[col]))
 }
 ```
 
 The output gives us following observations:
-
-1. Item_Fat_Content: Some of ‘Low Fat’ values mis-coded as ‘low fat’ and ‘LF’. Also, some of ‘Regular’ are mentioned as ‘regular’.
+  
+  1. Item_Fat_Content: Some of ‘Low Fat’ values mis-coded as ‘low fat’ and ‘LF’. Also, some of ‘Regular’ are mentioned as ‘regular’.
 2. Item_Type: Not all categories have substantial numbers. It looks like combining them can give better results.
 3. Outlet_Type: Supermarket Type2 and Type3 can be combined. But we should check if that’s a good idea before doing it.
 
@@ -160,12 +160,12 @@ This step typically involves imputing missing values and treating outliers. Thou
 ## Imputing Missing Values
 
 We found two variables with missing values – Item_Weight and Outlet_Size. Lets impute the former by the average weight of the particular item. This can be done as:
-
-```{r}
+  
+  ```{r}
 #Determine the average weight per item:
 library(sqldf)
 item_avg_weight = sqldf("select Item_Identifier,AVG(Item_Weight) as 'Item_Weight' from data Group by data.Item_Identifier")
- 
+
 #Get a boolean variable specifying missing Item_Weight values
 miss_bool = is.na(data['Item_Weight'])
 
@@ -249,8 +249,8 @@ Thus the new variable has been successfully created. Again, this is just 1 examp
 ## Step 3: Create a broad category of Type of Item
 
 Earlier we saw that the Item_Type variable has 16 categories which might prove to be very useful in analysis. So its a good idea to combine them. One way could be to manually assign a new category to each. But there’s a catch here. If you look at the Item_Identifier, i.e. the unique ID of each item, it starts with either FD, DR or NC. If you see the categories, these look like being Food, Drinks and Non-Consumables. So I’ve used the Item_Identifier variable to create a new column:
-
-```{r}
+  
+  ```{r}
 #Get the first two characters of ID:
 data$Item_Type_Combined = substr(data$Item_Identifier,1,2)
 
@@ -265,7 +265,7 @@ count(data$Item_Type_Combined)
 ## Step 4: Determine the years of operation of a store
 
 We wanted to make a new column depicting the years of operation of a store. This can be done as:
-```{r}
+  ```{r}
 #Years:
 data$Outlet_Years = 2013 - data$Outlet_Establishment_Year
 summary(data$Outlet_Years)
@@ -276,16 +276,16 @@ This shows stores which are 4-28 years old. Notice I’ve used 2013. Why? Read t
 ## Step 5: Modify categories of Item_Fat_Content
 
 We found typos and difference in representation in categories of Item_Fat_Content variable. This can be corrected as:
-
-```{r}
+  
+  ```{r}
 #Change categories of low fat:
 cat('Original Categories:')
 count(data$Item_Fat_Content)
 
 cat('\nModified Categories:')
 data$Item_Fat_Content = revalue(data$Item_Fat_Content,c('LF'='Low Fat',
-                                                             'reg'='Regular',
-                                                             'low fat'='Low Fat'))
+                                                        'reg'='Regular',
+                                                        'low fat'='Low Fat'))
 count(data$Item_Fat_Content)
 ```
 
@@ -322,12 +322,12 @@ Lets start with coding all categorical variables as numeric using ‘LabelEncode
 #     data[i]=transform(fit,data[i])
 # }
 ```
-    
+
 One-Hot-Coding refers to creating dummy variables, one for each category of a categorical variable. For example, the Item_Fat_Content has 3 categories – ‘Low Fat’, ‘Regular’ and ‘Non-Edible’. One hot coding will remove this variable and generate 3 new variables. Each will have binary numbers – 0 (if the category is not present) and 1(if category is present). This can be done using ‘get_dummies’ function of Pandas.
 
 Lets look at the datatypes of columns now:
-
-```{r}
+  
+  ```{r}
 str(data)
 ```
 
@@ -339,8 +339,8 @@ str(data)
 ## Step 7: Exporting Data
 
 Final step is to convert data back into train and test data sets. Its generally a good idea to export both of these as modified data sets so that they can be re-used for multiple sessions. This can be achieved using following code:
-
-````{r}
+  
+  ````{r}
 
 #Drop the columns which have been converted to different types:
 data$Item_Type <- NULL
@@ -351,13 +351,13 @@ data$Outlet_Establishment_Year <- NULL
 #Divide into test and train:
 trainm = data[data$source=="train",]
 testm = data[data$source=="test",]
- 
+
 #Drop unnecessary columns:
 trainm$source <- NULL
- 
+
 testm$Item_Outlet_Sales <- NULL
 testm$source <- NULL
- 
+
 #Export files as modified versions:
 write.csv(trainm, "trainmodified.csv",row.names=FALSE)
 write.csv(testm, "testmodified.csv",row.names=FALSE))
